@@ -1,2 +1,2 @@
-traffic_simulation
+Traffic Simulation
 ==================
