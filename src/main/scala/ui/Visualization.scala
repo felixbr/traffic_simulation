@@ -14,7 +14,7 @@ object Visualization extends PApplet {
         frame.pack()
         frame.setVisible(true)
 
-
+	    initActorSystem(visualization)
     }
 
     def initActorSystem(viz: Visualization) = {
@@ -38,6 +38,8 @@ trait CarVisualization {
 }
 
 class Visualization extends PApplet with CarVisualization {
+	private var cars = Vector[Car]()
+
     override def setup() = {
         size(640, 240)
         background(102)
@@ -53,5 +55,5 @@ class Visualization extends PApplet with CarVisualization {
         text("-0.2m/s", width-45, 130)
     }
 
-    override def updateCarsData(cars: Vector[Car]): Unit = ()
+    override def updateCarsData(cars: Vector[Car]): Unit = this.cars = cars
 }
