@@ -5,19 +5,13 @@ import actors.TrafficObserverActor.AddCar
 import akka.actor.{ActorRef, Props, ActorSystem}
 import data.Car
 import processing.core._
+import java.awt.Dimension
 
-object Visualization extends PApplet {
-    def main(args: Array[String]) = {
-        val visualization = new Visualization()
-        val frame = new javax.swing.JFrame("CarDisplay")
-        visualization.init()
-        frame.pack()
-        frame.setVisible(true)
+trait ActorStartup {
 
-	    initActorSystem(visualization)
-    }
+	def initActorSystem(viz: Visualization) = {
+	    println("init")
 
-    def initActorSystem(viz: Visualization) = {
         val system = ActorSystem("traffic-simulation")
 
         val trafficObserver = system.actorOf(Props(new TrafficObserverActor(viz)))
@@ -26,6 +20,8 @@ object Visualization extends PApplet {
     }
 
     def fillTraffic(trafficObserver: ActorRef) = {
+        println("bla")
+
         trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 300)
         trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 200)
         trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 100)
@@ -37,7 +33,7 @@ trait CarVisualization {
     def updateCarsData(cars: Vector[Car])
 }
 
-class Visualization extends PApplet with CarVisualization {
+class Visualization extends PApplet with CarVisualization with ActorStartup {
 	private var cars = Vector[Car]()
 
     override def setup() = {
@@ -46,14 +42,25 @@ class Visualization extends PApplet with CarVisualization {
         smooth()
         noStroke()
         fill(0, 102)
+
+	    fill(255, 255, 255)
+	    rect(20, 20, 20, 20)
+
+	    initActorSystem(this)
     }
 
     override def draw() = {
-        fill(255, 255, 255)
-        rect(width-60, 110, 60, 30)
-        fill(0, 0, 0)
-        text("-0.2m/s", width-45, 130)
+	    cars.foreach(drawCar)
     }
 
     override def updateCarsData(cars: Vector[Car]): Unit = this.cars = cars
+
+	def drawCar(car: Car): Unit = {
+		println(s"drawing car at $car.distanceTravelled")
+
+		fill(255, 255, 255)
+		rect(car.distanceTravelled.toFloat, 110, Car.LENGTH, 30)
+		fill(0, 0, 0)
+		text("-0.2m/s", car.distanceTravelled.toFloat, 130)
+	}
 }

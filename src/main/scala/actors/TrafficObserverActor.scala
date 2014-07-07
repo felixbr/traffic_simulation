@@ -1,6 +1,6 @@
 package actors
 
-import actors.TrafficObserverActor.{UpdateCarData, AddCar, CarMovement}
+import actors.TrafficObserverActor.{UpdateCarData, AddCar}
 import akka.actor.{Props, Actor}
 import data.TypeSynonyms.{Distance, CarID, Acceleration, Speed}
 import ui.CarVisualization
@@ -18,8 +18,10 @@ class TrafficObserverActor(visualization: CarVisualization) extends Actor {
 
     def receive = {
         case AddCar(speed, accel, distance) => {
+	        println(s"adding car to traffic at $distance")
+
             val carInFront = carActors.lastOption
-            val carActor = context.actorOf(Props(new CarActor(id = carActors.size, carInFront, speed, distance)))
+            val carActor = context.actorOf(Props(new CarActor(id = carActors.size, new Car(speed, accel, distance), carInFront)))
 
             carActors :+ carActor
 	        cars :+ new Car()
