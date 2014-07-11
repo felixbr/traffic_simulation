@@ -1,31 +1,35 @@
 package ui
 
-import actors.TrafficObserverActor
+import actors.TickActor.{AdjustTickInterval, StartTicking}
 import actors.TrafficObserverActor.AddCar
-import akka.actor.{ActorRef, Props, ActorSystem}
+import actors.{TickActor, TrafficObserverActor}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import data.Car
 import processing.core._
-import java.awt.Dimension
 
 trait ActorStartup {
 
 	def initActorSystem(viz: Visualization) = {
 	    println("init")
 
-        val system = ActorSystem("traffic-simulation")
+        implicit val system = ActorSystem("traffic-simulation")
 
-        val trafficObserver = system.actorOf(Props(new TrafficObserverActor(viz)))
+        val tickActor = system.actorOf(Props(new TickActor()))
+        val trafficObserver = system.actorOf(Props(new TrafficObserverActor(viz, tickActor)))
 
         fillTraffic(trafficObserver)
+
+        tickActor ! AdjustTickInterval(50)
+        tickActor ! StartTicking
     }
 
     def fillTraffic(trafficObserver: ActorRef) = {
         println("bla")
 
-        trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 300)
-        trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 200)
-        trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 100)
-        trafficObserver ! AddCar(speed = 100.0, accel = 0.0, distance = 0)
+        trafficObserver ! AddCar(distance = 300)
+        trafficObserver ! AddCar(distance = 200)
+        trafficObserver ! AddCar(distance = 100)
+        trafficObserver ! AddCar(distance = 0)
     }
 }
 
@@ -43,24 +47,36 @@ class Visualization extends PApplet with CarVisualization with ActorStartup {
         noStroke()
         fill(0, 102)
 
-	    fill(255, 255, 255)
-	    rect(20, 20, 20, 20)
-
 	    initActorSystem(this)
     }
 
     override def draw() = {
-	    cars.foreach(drawCar)
+        background(102)
+
+        val farthestDistance =
+            if (cars.nonEmpty) cars.maxBy(_.distanceTravelled).distanceTravelled.toInt
+            else 0
+
+        cars.foreach(drawCar(_, farthestDistance))
+
+        drawStreetMarkers(farthestDistance)
     }
 
     override def updateCarsData(cars: Vector[Car]): Unit = this.cars = cars
 
-	def drawCar(car: Car): Unit = {
-		println(s"drawing car at $car.distanceTravelled")
+	def drawCar(car: Car, offset: Int): Unit = {
+        val xPos: Float = (640 - Car.LENGTH + (car.distanceTravelled - offset)).toFloat
 
 		fill(255, 255, 255)
-		rect(car.distanceTravelled.toFloat, 110, Car.LENGTH, 30)
+		rect(xPos, 110, Car.LENGTH, 30)
 		fill(0, 0, 0)
-		text("-0.2m/s", car.distanceTravelled.toFloat, 130)
+		text(f"${car.accel}%2.2f m/s", xPos + 5, 130)
 	}
+
+    def drawStreetMarkers(offset: Int): Unit = {
+        val markers = Seq(0, 240, 480, 720).map { _ - offset % 240 }
+
+        fill(255, 255, 255)
+        markers.foreach { rect(_, 5, 40, 5) }
+    }
 }
